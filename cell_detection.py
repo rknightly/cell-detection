@@ -19,6 +19,16 @@ def read_image(file_name):
 
     return grayscale_image
 
+def normalize(matrix):
+    min = np.min(matrix)
+    max = np.max(matrix)
+
+    for x in range(matrix.shape[0]):
+        for y in range(matrix.shape[1]):
+            matrix[x][y] = (matrix[x][y] - min)/(max-min) # normalize to range 0,1
+
+    return matrix
+
 
 def filter_noise(image):
     print("Pre-processed mean: " + str(np.mean(image)))
@@ -27,14 +37,14 @@ def filter_noise(image):
     mean_filled = np.sum(image) / np.count_nonzero(image)
     print("MEAN FILLED: " + str(mean_filled))
 
-    threshold = mean_filled * 0.5
+    threshold = 0.4 #mean_filled * 0.5
     unfilled_count = 0
     filled_count = 0
 
     print("THRESHOLD: " + str(threshold))
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
-            print(image[x][y])
+            # print(image[x][y])
             if image[x][y] < threshold:
                 image[x][y] = 0
                 unfilled_count += 1
@@ -72,8 +82,7 @@ def check_cell(matrix, initial_x, initial_y):
     return cell_pixels, matrix
 
 
-def detect_cells_in(matrix):
-    image = read_image(file_name)
+def detect_cells_in(image):
     cells_found = []
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
@@ -88,12 +97,18 @@ def detect_cells_in(matrix):
 
 def main():
     # image = read_image('data/simple_examples/simpleTest.png')
-    image = read_image('data/resized/testSlide1.png')
-    plt.imshow(image, cmap='gray', interpolation='nearest')
+    image = read_image('data/resized/testSlide2.png')
 
+    plt.imshow(image, cmap='gray', interpolation='nearest')
+    plt.show()
+
+    image = normalize(image)
     image = filter_noise(image)
 
-    # detect_cells_in(image)
+    plt.imshow(image, cmap='gray', interpolation='nearest')
+
+
+    detect_cells_in(image)
     plt.show()
 
 
