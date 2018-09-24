@@ -5,7 +5,7 @@ PIXEL_THRESHOLD = 0.0
 
 # Original image has R, G, B channels
 # Shape: (X pixels, Y pixels, 3 color channels)
-original_image = imageio.imread('simpleTest.png')
+original_image = imageio.imread('data/simple_examples/simpleTest.png')
 print(f'original shape: {original_image.shape}')
 
 grayscale_image = np.mean(original_image, axis=2)
