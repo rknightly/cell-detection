@@ -1,5 +1,6 @@
 import numpy as np
 import imageio
+from matplotlib import pyplot as plt
 
 
 PIXEL_THRESHOLD = 0.0
@@ -14,9 +15,38 @@ def read_image(file_name):
     grayscale_image = np.mean(original_image, axis=2)
     grayscale_image /= 255.0
     print(f'grayscale shape: {grayscale_image.shape}')
-    print(f'max grayscale pixel: {np.max(grayscale_image)}')
+    print(f'max grayscale pixel: {np.max(grayscale_image):0.3f}')
 
     return grayscale_image
+
+
+def filter_noise(image):
+    print("Pre-processed mean: " + str(np.mean(image)))
+
+    print(image.shape)
+    mean_filled = np.sum(image) / np.count_nonzero(image)
+    print("MEAN FILLED: " + str(mean_filled))
+
+    threshold = mean_filled * 0.5
+    unfilled_count = 0
+    filled_count = 0
+
+    print("THRESHOLD: " + str(threshold))
+    for x in range(image.shape[0]):
+        for y in range(image.shape[1]):
+            print(image[x][y])
+            if image[x][y] < threshold:
+                image[x][y] = 0
+                unfilled_count += 1
+            else:
+                # print("Filled pixels")
+                image[x][y] = 1
+                filled_count += 1
+
+    print(f'Filled: {filled_count}, Unfilled: {unfilled_count}')
+    print(np.mean(image))
+
+    return image
 
 
 def check_cell(matrix, initial_x, initial_y):
@@ -42,7 +72,7 @@ def check_cell(matrix, initial_x, initial_y):
     return cell_pixels, matrix
 
 
-def detect_cells_in_image(file_name):
+def detect_cells_in(matrix):
     image = read_image(file_name)
     cells_found = []
     for x in range(image.shape[0]):
@@ -57,7 +87,14 @@ def detect_cells_in_image(file_name):
 
 
 def main():
-    detect_cells_in_image('data/simple_examples/simpleTest.png')
+    # image = read_image('data/simple_examples/simpleTest.png')
+    image = read_image('data/resized/testSlide1.png')
+    plt.imshow(image, cmap='gray', interpolation='nearest')
+
+    image = filter_noise(image)
+
+    # detect_cells_in(image)
+    plt.show()
 
 
 if __name__ == '__main__':
