@@ -3,7 +3,7 @@ import imageio
 from matplotlib import pyplot as plt
 
 
-PIXEL_THRESHOLD = 0.0
+FILTER_THRESHOLD = 0.3
 
 
 def read_image(file_name):
@@ -37,15 +37,13 @@ def filter_noise(image):
     mean_filled = np.sum(image) / np.count_nonzero(image)
     print("MEAN FILLED: " + str(mean_filled))
 
-    threshold = 0.4 #mean_filled * 0.5
     unfilled_count = 0
     filled_count = 0
 
-    print("THRESHOLD: " + str(threshold))
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
             # print(image[x][y])
-            if image[x][y] < threshold:
+            if image[x][y] < FILTER_THRESHOLD:
                 image[x][y] = 0
                 unfilled_count += 1
             else:
@@ -97,14 +95,13 @@ def detect_cells_in(image):
 
 def main():
     # image = read_image('data/simple_examples/simpleTest.png')
-    image = read_image('data/resized/testSlide2.png')
-
+    image = read_image('data/resized/testSlide1.png')
+    plt.figure(1)
     plt.imshow(image, cmap='gray', interpolation='nearest')
-    plt.show()
 
     image = normalize(image)
     image = filter_noise(image)
-
+    plt.figure(2)
     plt.imshow(image, cmap='gray', interpolation='nearest')
 
 
