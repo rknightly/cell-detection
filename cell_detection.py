@@ -41,4 +41,7 @@ for x in range(grayscale_image.shape[0]):
         if grayscale_image[x][y] > 0.0:
             cell_pixels, grayscale_image = check_cell(grayscale_image, x, y)
             cells_found.append(cell_pixels)
-            print(f'Found cell with {len(cell_pixels)} pixels.')
+            center = np.mean(cell_pixels, axis=0)
+            print(f'Found cell with {len(cell_pixels)} pixels. With center: {center[0]:.1f}, {center[1]:.1f}')
+
+print(f'Found {len(cells_found)} cells.')
