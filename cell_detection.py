@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 
 FILTER_THRESHOLD = 0.3
-SMALL_CELL_THRESHOLD = 55
+SMALL_CELL_THRESHOLD = 15
 
 
 def read_image(file_name):
@@ -155,9 +155,9 @@ def blur_image(image):
     return final_image
 
 
-def overlay_discovered_cells(image, cells_found):
+def highlight_discovered_cells(image, cells_found):
     '''
-    Add an overlay to the original image to show the discovered cells
+    Add highlights to the original image to show the discovered cells
     :param image: the original RGB image to overlay
     :param cells_found: an array of cells, where each cell is an array of the pixels that represent that cell
     :returns an array representing an image with the overlays added
@@ -174,6 +174,14 @@ def overlay_discovered_cells(image, cells_found):
 
     return image
 
+
+def construct_image_from_cells(example_image, cells):
+    image = np.zeros(shape=example_image.shape)
+    for cell in cells:
+        for pixel in cell:
+            image[pixel[0]][pixel[1]] = 1
+
+    return image
 
 def print_cell_results(cells):
     for cell_pixels in cells:
@@ -193,13 +201,26 @@ def main():
     original_image = read_image('data/raw/testSlide1.png')
     grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
     filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
-    blurred_image = blur_image(filtered_image)
 
+    # Find the possible cells that are groups of colored pixels
+    possible_cells = detect_cells_in(np.copy(filtered_image))
+    possible_cells = remove_small_cells_in(possible_cells)
+
+    # Construct a new image without the pixels that were part of an oddly small "cell"
+    # This can be viewed as a more sophisticated filter than previously, as these oddly
+    # small pixel groups are probably just noise
+    image_without_small_cells = construct_image_from_cells(grayscale_image, possible_cells)
+
+    # Blur the image so that single cells aren't split up and percieved as multiple cells
+    blurred_image = blur_image(image_without_small_cells)
+
+    # Use this filtered, blurred image to find the final estimates of cell locations
     cells_found = detect_cells_in(np.copy(blurred_image))
     cells_found = remove_small_cells_in(cells_found)
     print_cell_results(cells_found)
 
-    cell_overlay = overlay_discovered_cells(np.copy(original_image), cells_found)
+    # Show the original image with the proposed cell locations highlighted on it
+    cell_overlay = highlight_discovered_cells(np.copy(original_image), cells_found)
 
     # Show the image at different stages of processing
     plt.figure(0)
@@ -212,15 +233,6 @@ def main():
     plt.imshow(blurred_image, cmap='gray', interpolation='nearest')
     plt.figure(4)
     plt.imshow(cell_overlay, interpolation='nearest')
-
-    # Show distribution of image values
-    plt.figure(5)
-    cell_sizes = [len(cell_pixels) for cell_pixels in cells_found]
-    binwidth = 10
-    plt.hist(cell_sizes, bins=np.arange(min(cell_sizes), max(cell_sizes) + binwidth, binwidth))
-    plt.title("Cell Size Histogram")
-    plt.xlabel("Cell Size")
-    plt.ylabel("Frequency")
 
     plt.show()
 
