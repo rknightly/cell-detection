@@ -6,9 +6,14 @@ import imageio
 # The filter threshold for the normalized grayscale image.
 # Pixels at or below this value are considered noise.
 FILTER_THRESHOLD = 0.3
+
 # The threshold number for what constitutes a cell that is unusually small. 
 # Cells at or below this size are considered noise.
 SMALL_CELL_THRESHOLD = 15
+
+# The width of the image that was used to define the small cell threshold.
+# This is important to that images of other sizes can be processed as well.
+ORIGINAL_IMAGE_WIDTH = 1125
 
 
 def main():
@@ -24,7 +29,7 @@ def main():
 
     # Find the possible cells that are groups of colored pixels
     possible_cells = detect_cells_in(np.copy(filtered_image))
-    possible_cells = remove_small_cells_in(possible_cells)
+    possible_cells = remove_small_cells_in(possible_cells, grayscale_image.shape)
 
     # Construct a new image without the pixels that were part of an oddly small "cell"
     # This can be viewed as a more sophisticated filter than previously, as these oddly
@@ -36,7 +41,7 @@ def main():
 
     # Use this filtered, blurred image to find the final estimates of cell locations
     cells_found = detect_cells_in(np.copy(blurred_image))
-    cells_found = remove_small_cells_in(cells_found)
+    cells_found = remove_small_cells_in(cells_found, grayscale_image.shape)
     print_cell_results(cells_found)
 
     # Show the original image with the proposed cell locations highlighted on it
@@ -173,14 +178,17 @@ def explore_cell(matrix, initial_x, initial_y):
     return cell_pixels, matrix
 
 
-def remove_small_cells_in(cells):
+def remove_small_cells_in(cells, image_shape):
     '''
     Removes the cells that are unusually small from a list of cells
     :param cells: a list of cells where each cell is a list of pixels that the cell contains
+    :param image_shape: the shape of the image that contains the cells
     :returns a list of cells where each cell is a list of pixels that the cell contains but without
     any cells that are unusually small
     '''
-    return [cell for cell in cells if len(cell) > SMALL_CELL_THRESHOLD]
+    image_ratio = image_shape[0] / ORIGINAL_IMAGE_WIDTH
+    effective_threshold = SMALL_CELL_THRESHOLD * (image_ratio ** 2)
+    return [cell for cell in cells if len(cell) > effective_threshold]
 
 
 def construct_image_from_cells(image_shape, cells):
