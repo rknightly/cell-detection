@@ -3,8 +3,47 @@ import imageio
 from matplotlib import pyplot as plt
 
 
+# The filter threshold for the normalized grayscale image.
+# Pixels at or below this value are considered noise.
 FILTER_THRESHOLD = 0.3
+# The threshold number for what constitutes a cell that is unusually small. 
+# Cells at or below this size are considered noise.
 SMALL_CELL_THRESHOLD = 15
+
+
+def main():
+    '''
+    Main function of the program.
+    Reads the image from the file, displays it, filters it and displays it again.
+    Finally, it detects the cells in the image and prints the locations
+    '''
+    # Read and process image
+    original_image = read_image('data/raw/testSlide1.png')
+    grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
+    filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
+
+    # Find the possible cells that are groups of colored pixels
+    possible_cells = detect_cells_in(np.copy(filtered_image))
+    possible_cells = remove_small_cells_in(possible_cells)
+
+    # Construct a new image without the pixels that were part of an oddly small "cell"
+    # This can be viewed as a more sophisticated filter than previously, as these oddly
+    # small pixel groups are probably just noise
+    image_without_small_cells = construct_image_from_cells(grayscale_image, possible_cells)
+
+    # Blur the image so that single cells aren't split up and percieved as multiple cells
+    blurred_image = blur_image(image_without_small_cells)
+
+    # Use this filtered, blurred image to find the final estimates of cell locations
+    cells_found = detect_cells_in(np.copy(blurred_image))
+    cells_found = remove_small_cells_in(cells_found)
+    print_cell_results(cells_found)
+
+    # Show the original image with the proposed cell locations highlighted on it
+    cell_overlay = highlight_discovered_cells(np.copy(original_image), cells_found)
+
+    # Show the image at different stages of processing
+    display_images([original_image, grayscale_image, filtered_image, blurred_image, cell_overlay])
 
 
 def read_image(file_name):
@@ -85,7 +124,24 @@ def filter_noise(image):
     return image
 
 
-def search_cell(matrix, initial_x, initial_y):
+def detect_cells_in(image):
+    '''
+    Searches an image matrix for all cells it contains.
+    Prints the output to the screen
+    :param image: a 2D matrix of the grayscale image
+    :returns None
+    '''
+    cells_found = []
+    for x in range(image.shape[0]):
+        for y in range(image.shape[1]):
+            if image[x][y] > 0.0:
+                cell_pixels, image = explore_cell(image, x, y)
+                cells_found.append(cell_pixels)
+
+    return cells_found
+
+
+def explore_cell(matrix, initial_x, initial_y):
     '''
     Finds all pixels that are part of the cell that contains the
     pixel at the location (initial_x, initial_y)
@@ -117,25 +173,17 @@ def search_cell(matrix, initial_x, initial_y):
     return cell_pixels, matrix
 
 
-def detect_cells_in(image):
-    '''
-    Searches an image matrix for all cells it contains.
-    Prints the output to the screen
-    :param image: a 2D matrix of the grayscale image
-    :returns None
-    '''
-    cells_found = []
-    for x in range(image.shape[0]):
-        for y in range(image.shape[1]):
-            if image[x][y] > 0.0:
-                cell_pixels, image = search_cell(image, x, y)
-                cells_found.append(cell_pixels)
-
-    return cells_found
-
-
 def remove_small_cells_in(cells):
     return [cell for cell in cells if len(cell) > SMALL_CELL_THRESHOLD]
+
+
+def construct_image_from_cells(example_image, cells):
+    image = np.zeros(shape=example_image.shape)
+    for cell in cells:
+        for pixel in cell:
+            image[pixel[0]][pixel[1]] = 1
+
+    return image
 
 
 def blur_image(image):
@@ -175,14 +223,6 @@ def highlight_discovered_cells(image, cells_found):
     return image
 
 
-def construct_image_from_cells(example_image, cells):
-    image = np.zeros(shape=example_image.shape)
-    for cell in cells:
-        for pixel in cell:
-            image[pixel[0]][pixel[1]] = 1
-
-    return image
-
 def print_cell_results(cells):
     for cell_pixels in cells:
         center = np.mean(cell_pixels, axis=0)
@@ -191,48 +231,16 @@ def print_cell_results(cells):
     print(f'Found {len(cells)} cells.')
 
 
-def main():
-    '''
-    Main function of the program.
-    Reads the image from the file, displays it, filters it and displays it again.
-    Finally, it detects the cells in the image and prints the locations
-    '''
-    # Read and process image
-    original_image = read_image('data/raw/testSlide1.png')
-    grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
-    filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
+def display_images(images):
+    for x, image in enumerate(images):
+        plt.figure(x)
+        # Grayscale only has 1 color channel. The shape of a grayscale image will be (X, Y) vs. (X, Y, n) for a colored image
+        is_grayscale = len(image.shape) == 2    
 
-    # Find the possible cells that are groups of colored pixels
-    possible_cells = detect_cells_in(np.copy(filtered_image))
-    possible_cells = remove_small_cells_in(possible_cells)
-
-    # Construct a new image without the pixels that were part of an oddly small "cell"
-    # This can be viewed as a more sophisticated filter than previously, as these oddly
-    # small pixel groups are probably just noise
-    image_without_small_cells = construct_image_from_cells(grayscale_image, possible_cells)
-
-    # Blur the image so that single cells aren't split up and percieved as multiple cells
-    blurred_image = blur_image(image_without_small_cells)
-
-    # Use this filtered, blurred image to find the final estimates of cell locations
-    cells_found = detect_cells_in(np.copy(blurred_image))
-    cells_found = remove_small_cells_in(cells_found)
-    print_cell_results(cells_found)
-
-    # Show the original image with the proposed cell locations highlighted on it
-    cell_overlay = highlight_discovered_cells(np.copy(original_image), cells_found)
-
-    # Show the image at different stages of processing
-    plt.figure(0)
-    plt.imshow(original_image, interpolation='nearest')
-    plt.figure(1)
-    plt.imshow(grayscale_image, cmap='gray', interpolation='nearest')
-    plt.figure(2)
-    plt.imshow(filtered_image, cmap='gray', interpolation='nearest')
-    plt.figure(3)
-    plt.imshow(blurred_image, cmap='gray', interpolation='nearest')
-    plt.figure(4)
-    plt.imshow(cell_overlay, interpolation='nearest')
+        if is_grayscale:
+            plt.imshow(image, cmap='gray', interpolation='nearest')
+        else:
+            plt.imshow(image, interpolation='nearest')
 
     plt.show()
 
