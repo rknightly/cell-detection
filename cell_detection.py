@@ -1,6 +1,6 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import imageio
-from matplotlib import pyplot as plt
 
 
 # The filter threshold for the normalized grayscale image.
@@ -29,7 +29,7 @@ def main():
     # Construct a new image without the pixels that were part of an oddly small "cell"
     # This can be viewed as a more sophisticated filter than previously, as these oddly
     # small pixel groups are probably just noise
-    image_without_small_cells = construct_image_from_cells(grayscale_image, possible_cells)
+    image_without_small_cells = construct_image_from_cells(grayscale_image.shape, possible_cells)
 
     # Blur the image so that single cells aren't split up and percieved as multiple cells
     blurred_image = blur_image(image_without_small_cells)
@@ -174,11 +174,22 @@ def explore_cell(matrix, initial_x, initial_y):
 
 
 def remove_small_cells_in(cells):
+    '''
+    Removes the cells that are unusually small from a list of cells
+    :param cells: a list of cells where each cell is a list of pixels that the cell contains
+    :returns a list of cells where each cell is a list of pixels that the cell contains but without
+    any cells that are unusually small
+    '''
     return [cell for cell in cells if len(cell) > SMALL_CELL_THRESHOLD]
 
 
-def construct_image_from_cells(example_image, cells):
-    image = np.zeros(shape=example_image.shape)
+def construct_image_from_cells(image_shape, cells):
+    '''
+    Creates an image where the only filled in pixels are those that are part of the given cells
+    :param image_shape: a tuple describing the shape of the image array
+    :returns: a matrix representing the image where the only colored pixels are those contained in the given cells
+    '''
+    image = np.zeros(shape=image_shape)
     for cell in cells:
         for pixel in cell:
             image[pixel[0]][pixel[1]] = 1
@@ -224,6 +235,11 @@ def highlight_discovered_cells(image, cells_found):
 
 
 def print_cell_results(cells):
+    '''
+    Prints the cells found to the console
+    :param cells: a list of cells where each cell is a list of pixel locations that contain the cell
+    :returns None
+    '''
     for cell_pixels in cells:
         center = np.mean(cell_pixels, axis=0)
         print(f'Found cell with {len(cell_pixels)} pixels. With center: {center[0]:.1f}, {center[1]:.1f}')
@@ -232,6 +248,11 @@ def print_cell_results(cells):
 
 
 def display_images(images):
+    '''
+    Displays a list of image matrices as images
+    :param images: a list of images where each image is a matrix of shape (X, Y, n) that describes the pixels of an image
+    :returns None
+    '''
     for x, image in enumerate(images):
         plt.figure(x)
         # Grayscale only has 1 color channel. The shape of a grayscale image will be (X, Y) vs. (X, Y, n) for a colored image
