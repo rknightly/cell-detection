@@ -134,6 +134,28 @@ def detect_cells_in(image):
 
     print(f'Found {len(cells_found)} cells.')
 
+    return cells_found
+
+
+def overlay_discovered_cells(image, cells_found):
+    '''
+    Add an overlay to the original image to show the discovered cells
+    :param image: the original RGB image to overlay
+    :param cells_found: an array of cells, where each cell is an array of the pixels that represent that cell
+    :returns an array representing an image with the overlays added
+    '''
+    overlayed_cells = []
+    # RGB
+
+    for cell in cells_found:
+        for pixel in cell:
+            # Each pixel will have [Red, Green, Blue]
+            # Here we are changing green and blue to highlight the pixels where the cells were found
+            image[pixel[0]][pixel[1]][1] = 180
+            image[pixel[0]][pixel[1]][2] = 180
+
+    return image
+
 
 def main():
     '''
@@ -146,7 +168,9 @@ def main():
     grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
     filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
 
-    detect_cells_in(np.copy(filtered_image))
+    cells_found = detect_cells_in(np.copy(filtered_image))
+
+    cell_overlay = overlay_discovered_cells(np.copy(original_image), cells_found)
 
     # Show the image at different stages of processing
     plt.figure(0)
@@ -155,7 +179,9 @@ def main():
     plt.imshow(grayscale_image, cmap='gray', interpolation='nearest')
     plt.figure(2)
     plt.imshow(filtered_image, cmap='gray', interpolation='nearest')
-    
+    plt.figure(3)
+    plt.imshow(cell_overlay, interpolation='nearest')
+
     plt.show()
 
 
