@@ -8,23 +8,31 @@ FILTER_THRESHOLD = 0.3
 
 def read_image(file_name):
     '''
-    Reads the image from the file and converts to grayscale
+    Reads the image from the file and returns it as a matrix
     :param file_name: a str of the file name of the image
-    :returns a numpy array of size (X, Y, 1) where X and Y are the image dimensions
+    :returns a numpy array of size (X, Y, n) where X and Y are the image dimensions
+    and n is the number of color channels
     '''
     # Original image has R, G, B channels
     # Shape: (X pixels, Y pixels, 3 color channels)
-    original_image = imageio.imread(file_name)
-    print(f'original shape: {original_image.shape}')
+    image = imageio.imread(file_name)
 
-    plt.figure(0)
-    plt.imshow(original_image, interpolation='nearest')
+    return image
 
-    grayscale_image = np.mean(original_image, axis=2)
+
+def convert_to_grayscale(image):
+    '''
+    Converts a given image to grayscale
+    :param image: a matrix of dimension (X, Y, n) where X and Y are the width and height
+    of the image and n color channels (likely 3 for RGB)
+    :returns a matrix of dimension (X, Y, 1) of the original image in grayscale
+    '''
+    grayscale_image = np.mean(image, axis=2)
     print(f'grayscale shape: {grayscale_image.shape}')
     print(f'max grayscale pixel: {np.max(grayscale_image):0.3f}')
 
     return grayscale_image
+
 
 def normalize(matrix):
     '''
@@ -76,7 +84,7 @@ def filter_noise(image):
     return image
 
 
-def check_cell(matrix, initial_x, initial_y):
+def search_cell(matrix, initial_x, initial_y):
     '''
     Finds all pixels that are part of the cell that contains the
     pixel at the location (initial_x, initial_y)
@@ -119,7 +127,7 @@ def detect_cells_in(image):
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
             if image[x][y] > 0.0:
-                cell_pixels, image = check_cell(image, x, y)
+                cell_pixels, image = search_cell(image, x, y)
                 cells_found.append(cell_pixels)
                 center = np.mean(cell_pixels, axis=0)
                 print(f'Found cell with {len(cell_pixels)} pixels. With center: {center[0]:.1f}, {center[1]:.1f}')
@@ -133,18 +141,21 @@ def main():
     Reads the image from the file, displays it, filters it and displays it again.
     Finally, it detects the cells in the image and prints the locations
     '''
-    # image = read_image('data/simple_examples/simpleTest.png')
-    image = read_image('data/resized/testSlide1.png')
+    # Read and process image
+    original_image = read_image('data/resized/testSlide1.png')
+    grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
+    filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
+
+    detect_cells_in(np.copy(filtered_image))
+
+    # Show the image at different stages of processing
+    plt.figure(0)
+    plt.imshow(original_image, interpolation='nearest')
     plt.figure(1)
-    plt.imshow(image, cmap='gray', interpolation='nearest')
-
-    image = normalize(image)
-    image = filter_noise(image)
+    plt.imshow(grayscale_image, cmap='gray', interpolation='nearest')
     plt.figure(2)
-    plt.imshow(image, cmap='gray', interpolation='nearest')
-
-
-    detect_cells_in(image)
+    plt.imshow(filtered_image, cmap='gray', interpolation='nearest')
+    
     plt.show()
 
 
