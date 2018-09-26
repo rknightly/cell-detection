@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 
 
 FILTER_THRESHOLD = 0.3
+SMALL_CELL_THRESHOLD = 55
 
 
 def read_image(file_name):
@@ -129,12 +130,29 @@ def detect_cells_in(image):
             if image[x][y] > 0.0:
                 cell_pixels, image = search_cell(image, x, y)
                 cells_found.append(cell_pixels)
-                center = np.mean(cell_pixels, axis=0)
-                print(f'Found cell with {len(cell_pixels)} pixels. With center: {center[0]:.1f}, {center[1]:.1f}')
-
-    print(f'Found {len(cells_found)} cells.')
 
     return cells_found
+
+
+def remove_small_cells_in(cells):
+    return [cell for cell in cells if len(cell) > SMALL_CELL_THRESHOLD]
+
+
+def blur_image(image):
+    final_image = np.copy(image)
+    for x in range(image.shape[0]):
+        for y in range(image.shape[1]):
+            if image[x][y] == 1:
+                if x > 0:
+                    final_image[x-1][y] = 1
+                if x < len(image[y]) - 1:
+                    final_image[x+1][y] = 1
+                if y > 0:
+                    final_image[x][y-1] = 1
+                if y < len(image) - 1:
+                    final_image[x][y+1] = 1
+
+    return final_image
 
 
 def overlay_discovered_cells(image, cells_found):
@@ -157,6 +175,14 @@ def overlay_discovered_cells(image, cells_found):
     return image
 
 
+def print_cell_results(cells):
+    for cell_pixels in cells:
+        center = np.mean(cell_pixels, axis=0)
+        print(f'Found cell with {len(cell_pixels)} pixels. With center: {center[0]:.1f}, {center[1]:.1f}')
+
+    print(f'Found {len(cells)} cells.')
+
+
 def main():
     '''
     Main function of the program.
@@ -164,11 +190,14 @@ def main():
     Finally, it detects the cells in the image and prints the locations
     '''
     # Read and process image
-    original_image = read_image('data/resized/testSlide1.png')
+    original_image = read_image('data/raw/testSlide1.png')
     grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
     filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
+    blurred_image = blur_image(filtered_image)
 
-    cells_found = detect_cells_in(np.copy(filtered_image))
+    cells_found = detect_cells_in(np.copy(blurred_image))
+    cells_found = remove_small_cells_in(cells_found)
+    print_cell_results(cells_found)
 
     cell_overlay = overlay_discovered_cells(np.copy(original_image), cells_found)
 
@@ -180,7 +209,18 @@ def main():
     plt.figure(2)
     plt.imshow(filtered_image, cmap='gray', interpolation='nearest')
     plt.figure(3)
+    plt.imshow(blurred_image, cmap='gray', interpolation='nearest')
+    plt.figure(4)
     plt.imshow(cell_overlay, interpolation='nearest')
+
+    # Show distribution of image values
+    plt.figure(5)
+    cell_sizes = [len(cell_pixels) for cell_pixels in cells_found]
+    binwidth = 10
+    plt.hist(cell_sizes, bins=np.arange(min(cell_sizes), max(cell_sizes) + binwidth, binwidth))
+    plt.title("Cell Size Histogram")
+    plt.xlabel("Cell Size")
+    plt.ylabel("Frequency")
 
     plt.show()
 
