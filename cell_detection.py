@@ -27,28 +27,25 @@ def main():
     grayscale_image = convert_to_grayscale(np.copy(original_image)) # Make copy so we can still have older versions
     filtered_image = filter_noise(normalize(np.copy(grayscale_image)))
 
-    # Find the possible cells that are groups of colored pixels
+    # Find the possible cells, which are reasonably sized groups of colored pixels
     possible_cells = detect_cells_in(np.copy(filtered_image))
-    possible_cells = remove_small_cells_in(possible_cells, grayscale_image.shape)
 
-    # Construct a new image without the pixels that were part of an oddly small "cell"
-    # This can be viewed as a more sophisticated filter than previously, as these oddly
-    # small pixel groups are probably just noise
-    image_without_small_cells = construct_image_from_cells(grayscale_image.shape, possible_cells)
+    # Construct a new image that only contains the pixels that are part of a reasonable sized "cell," which should
+    # Exclude small areas of high intensity noise
+    image_without_small_cells = construct_image_from_cells(possible_cells, grayscale_image.shape)
 
-    # Blur the image so that single cells aren't split up and percieved as multiple cells
-    blurred_image = blur_image(image_without_small_cells)
+    # Try to combine very close "cells" so no single cell is split up and percieved as multiple cells
+    merged_cell_image = merge_cells_in(image_without_small_cells)
 
-    # Use this filtered, blurred image to find the final estimates of cell locations
-    cells_found = detect_cells_in(np.copy(blurred_image))
-    cells_found = remove_small_cells_in(cells_found, grayscale_image.shape)
+    # Use this image to find the final estimates of cell locations
+    cells_found = detect_cells_in(np.copy(merged_cell_image))
     print_cell_results(cells_found)
 
     # Show the original image with the proposed cell locations highlighted on it
-    cell_overlay = highlight_discovered_cells(np.copy(original_image), cells_found)
+    cells_highlighted = highlight_discovered_cells(np.copy(original_image), cells_found)
 
-    # Show the image at different stages of processing
-    display_images([original_image, grayscale_image, filtered_image, blurred_image, cell_overlay])
+    # Show the images at different stages of processing
+    display_images([original_image, grayscale_image, filtered_image, merged_cell_image, cells_highlighted])
 
 
 def read_image(file_name):
@@ -72,11 +69,8 @@ def convert_to_grayscale(image):
     of the image and n color channels (likely 3 for RGB)
     :returns a matrix of dimension (X, Y, 1) of the original image in grayscale
     '''
-    grayscale_image = np.mean(image, axis=2)
-    print(f'grayscale shape: {grayscale_image.shape}')
-    print(f'max grayscale pixel: {np.max(grayscale_image):0.3f}')
 
-    return grayscale_image
+    return np.mean(image, axis=2)
 
 
 def normalize(matrix):
@@ -103,11 +97,7 @@ def filter_noise(image):
     :param image: a 2D array of the pixel values of the image
     :returns: a 2D array of the same size after the filter was applied
     '''
-    print("Pre-processed mean: " + str(np.mean(image)))
-
-    print(image.shape)
     mean_filled = np.sum(image) / np.count_nonzero(image)
-    print("MEAN FILLED: " + str(mean_filled))
 
     unfilled_count = 0
     filled_count = 0
@@ -123,18 +113,16 @@ def filter_noise(image):
                 image[x][y] = 1
                 filled_count += 1
 
-    print(f'Filled: {filled_count}, Unfilled: {unfilled_count}')
-    print(np.mean(image))
-
     return image
 
 
 def detect_cells_in(image):
     '''
-    Searches an image matrix for all cells it contains.
+    Searches an image matrix for all cells it contains which are not unusually small.
     Prints the output to the screen
     :param image: a 2D matrix of the grayscale image
-    :returns None
+    :returns a list of the discovered cells where each cell is a list of pixels that
+    represent the cell
     '''
     cells_found = []
     for x in range(image.shape[0]):
@@ -143,7 +131,7 @@ def detect_cells_in(image):
                 cell_pixels, image = explore_cell(image, x, y)
                 cells_found.append(cell_pixels)
 
-    return cells_found
+    return remove_small_cells_from(cells_found, image.shape)
 
 
 def explore_cell(matrix, initial_x, initial_y):
@@ -178,7 +166,7 @@ def explore_cell(matrix, initial_x, initial_y):
     return cell_pixels, matrix
 
 
-def remove_small_cells_in(cells, image_shape):
+def remove_small_cells_from(cells, image_shape):
     '''
     Removes the cells that are unusually small from a list of cells
     :param cells: a list of cells where each cell is a list of pixels that the cell contains
@@ -188,10 +176,11 @@ def remove_small_cells_in(cells, image_shape):
     '''
     image_ratio = image_shape[0] / ORIGINAL_IMAGE_WIDTH
     effective_threshold = SMALL_CELL_THRESHOLD * (image_ratio ** 2)
+
     return [cell for cell in cells if len(cell) > effective_threshold]
 
 
-def construct_image_from_cells(image_shape, cells):
+def construct_image_from_cells(cells, image_shape):
     '''
     Creates an image where the only filled in pixels are those that are part of the given cells
     :param image_shape: a tuple describing the shape of the image array
@@ -205,7 +194,12 @@ def construct_image_from_cells(image_shape, cells):
     return image
 
 
-def blur_image(image):
+def merge_cells_in(image):
+    '''
+    Merges the cells in a given image by simply expanding each filled pixel into its 4 neighboring pixels
+    :param image: an image matrix of the image to be processed
+    :returns an image matrix of the same shape as the input image after each pixel was expanded
+    '''
     final_image = np.copy(image)
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
