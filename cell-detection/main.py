@@ -1,22 +1,26 @@
 from cell_detector import CellDetector
-import sys, getopt
+import argparse
+import time
+import sys
 
-def main(argv):
-    input_file = ''
-    try:
-        opts, args = getopt.getopt(argv,"hi:",["input-file="])
-    except getopt.GetoptError:
-        print('detect-cells.py -i <inputfile>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('detect-cells.py -i <inputfile>')
-            sys.exit()
-        elif opt in ("-i", "--input-file"):
-            input_file = arg
+def main():
+    '''
+    Runs the cell detector on a given input file and shows the time taken
+    '''
+    start = time.time()
+    print("Running cell detector")
 
-    detector = CellDetector(input_file)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input_file", type=str,
+                        help="specify input file name", required=True)
+    args = parser.parse_args()
+
+    detector = CellDetector(args.input_file)
     detector.run()
 
+    end = time.time()
+    elapsed = end - start
+    print("Time elapsed: {:.3f} seconds".format(elapsed))
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

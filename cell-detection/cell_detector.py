@@ -5,11 +5,24 @@ from constants import SMALL_CELL_THRESHOLD
 from constants import ORIGINAL_IMAGE_WIDTH
 
 class CellDetector:
+    '''
+    Provides the mechanisms to detect the locations of cells in a slide from a microscope
+    '''
     def __init__(self, file_name):
+        '''
+        Initializes a cell detector to process the image at the given file
+        :param file_name: a string of the name of the file that contains a slide with cells
+         to process
+        :returns None
+        '''
         self.slide = Slide.from_file_name(file_name)
         self.filtered_slide = self.slide.copy()
 
     def detect_cells(self):
+        '''
+        Detects the cells in an image after filtering and processing it
+        :returns a list of detected cells, where each cell is list of (X, Y) pixel coordinates that contain the cell
+        '''
         self.filtered_slide.convert_to_grayscale()
         self.filtered_slide.normalize_pixels()
         self.filtered_slide.add_to_plot(0)
@@ -27,23 +40,19 @@ class CellDetector:
         self.filtered_slide.expand_pixels()
         self.filtered_slide.add_to_plot(4)
 
-
         # Use this image to find the final estimates of cell locations
         cells_found = self.find_cells_raw(self.filtered_slide)
 
         self.slide.highlight_cells(cells_found)
-        self.slide.show()
-
+        self.slide.add_to_plot(5)
 
         return cells_found
 
     def find_cells_raw(self, slide):
         '''
-        Searches an image matrix for all cells it contains which are not unusually small.
-        Prints the output to the screen
-        :param image: a 2D matrix of the grayscale image
-        :returns a list of the discovered cells where each cell is a list of pixels that
-        represent the cell
+        Without any pre-processing, this searches a slide for all cells it contains which are not unusually small.
+        :param slide: a grayscale slide with minimal noise if any
+        :returns a list of detected cells, where each cell is list of (X, Y) pixel coordinates that contain the cell
         '''
 
         image_ratio = slide.width / ORIGINAL_IMAGE_WIDTH
@@ -53,7 +62,7 @@ class CellDetector:
 
         for x in range(slide.width):
             for y in range(slide.height):
-                if working_slide.get_pixel(x, y) > 0.0:
+                if working_slide.get_pixel(x, y) > 0:
                     cell_pixels, working_slide = self.explore_cell(working_slide, x, y)
                     if len(cell_pixels) > effective_threshold: # ignore cells that are too small
                         cells_found.append(cell_pixels)
@@ -62,22 +71,20 @@ class CellDetector:
 
     def explore_cell(self, slide, base_x, base_y):
         '''
-        Finds all pixels that are part of the cell that contains the
-        pixel at the location (initial_x, initial_y)
-        :param matrix: a 2D array of the pixels of the image
-        :param initial_x: the X coordinate of the starting pixel of the cell
-        :param initial_y: the Y coordinate of the starting pixel of the cell
-        :returns cell_pixels: a list of all the pixels that were part of the cell
-        :returns matrix: the image matrix after the pixels of the current cell were changed to 0
+        Finds all pixels that are part of the cell that contains the base pixel
+        :param slide: the slide to search
+        :param base_x: the X coordinate of any pixel contained in the cell
+        :param base_y: the Y coordinate of any pixel contained in the cell
+        :returns cell_pixels: a list of all the (X, Y) pixel coordinates that are part of the cell
+        :returns slide: the given slide with all the pixels of the current cell changed to 0
         '''
         cell_pixels = []
 
         def flood_fill(x, y):
-            # stop clause - not reinvoking for 0, only for >0
-            if slide.get_pixel(x, y) > 0.0:
+            if slide.get_pixel(x, y) > 0:
                 cell_pixels.append( (x, y) )
                 slide.set_pixel(x, y, 0)
-                # recursively invoke flood fill on all surrounding cells:
+                # Invoke flood fill on all surrounding cells:
                 if x > 0:
                     flood_fill(x-1,y)
                 if x < slide.width - 1:
@@ -95,7 +102,7 @@ class CellDetector:
     def print_cell_results(cells):
         '''
         Prints the cells found to the console
-        :param cells: a list of cells where each cell is a list of pixel locations that contain the cell
+        :param cells: :returns a list of detected cells, where each cell is list of (X, Y) pixel coordinates that contain the cell
         :returns None
         '''
         for cell_pixels in cells:
@@ -105,5 +112,15 @@ class CellDetector:
         print(f'Found {len(cells)} cells.')
 
     def run(self):
+        '''
+        Runs the cell detector, by detecting the cells in a particular image and writing the output
+        :returns None
+        '''
         cells = self.detect_cells()
         self.print_cell_results(cells)
+
+    def show(self):
+        '''
+        Shows the plot containing the slide images
+        '''
+        plt.show()
