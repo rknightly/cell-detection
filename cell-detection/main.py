@@ -1,7 +1,7 @@
 from cell_detector import CellDetector
 import argparse
 import time
-import sys
+
 
 def main():
     '''
@@ -20,7 +20,8 @@ def main():
 
     end = time.time()
     elapsed = end - start
-    print("Time elapsed: {:.3f} seconds".format(elapsed))
+    print('Time elapsed: {:.3f} seconds'.format(elapsed))
+
 
 if __name__ == "__main__":
     main()

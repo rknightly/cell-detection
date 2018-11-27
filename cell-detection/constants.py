@@ -2,7 +2,7 @@
 # Pixels at or below this value are considered noise.
 FILTER_THRESHOLD = 0.3
 
-# The threshold number for what constitutes a cell that is unusually small. 
+# The threshold number for what constitutes a cell that is unusually small.
 # Cells at or below this size are considered noise.
 SMALL_CELL_THRESHOLD = 15
 

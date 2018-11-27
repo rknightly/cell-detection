@@ -1,6 +1,7 @@
 from image import Image
 import numpy as np
 
+
 class Slide(Image):
     '''
     An image of a slide from a microscope. This slide is expected to contain
@@ -9,13 +10,13 @@ class Slide(Image):
     @classmethod
     def from_cells(cls, cells, width, height):
         '''
-        Creates and returns a slide of a given size where the 
+        Creates and returns a slide of a given size where the
         only filled-in pixels are those that are part of the given cells
-        :param cells: a list of cells, where each cell is a list of (X, Y) pairs that
-         describe the locations of the pixels that comprise that cell
+        :param cells: a list of cells, where each cell is a list of (X, Y)
+         describing the locations of the pixels that comprise it
         :param width: the total width of the desired output image
         :param height: the total height of the desired output image
-        :returns an image object with shape (width, height) and only the pixels 
+        :returns an image object with shape (width, height) and only the pixels
          contained in cells filled in
         '''
         pixel_values = np.zeros(shape=(height, width), dtype=int)
@@ -32,7 +33,6 @@ class Slide(Image):
         Add highlights to the image to show the discovered cells
         :returns None
         '''
-        overlayed_cells = []
 
         for cell in cells:
             for pixel_location in cell:
