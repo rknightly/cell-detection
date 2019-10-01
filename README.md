@@ -4,7 +4,7 @@ A Python project that detects the pixel locations of individual cells in a micro
 
 Input Slide                |  Detected Cells
 :-------------------------:|:-------------------------:
-![](./media/InputImage.png)|![](./media/DetectedCells.png)
+![](./media/InputImage.png)|![](./media/Figure_3.png)
 
 ## Setup
 ```bash
