@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file', type=str,
                         help='specify input file name', required=True)
-    parser.add_argument('-o', '--output-file', type=str,
+    parser.add_argument('-o', '--output-file', type=str, default='results.json',
                         help='specify output file name', required=False)
     parser.add_argument('--show-process', action='store_true',
                         help='Display images to show the steps of filtering'
